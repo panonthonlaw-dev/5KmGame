@@ -282,9 +282,11 @@ export default function AdminPage() {
                  const payload = { title: f.title, description: f.desc, exp_reward: parseInt(f.exp) };
                  if (isEdit) await supabase.from('missions').update(payload).eq('id', f.id);
                  else await supabase.from('missions').insert([payload]);
-                 alert('บันทึกสำเร็จ!'); setF({id:'',title:'',desc:'',exp:'',u:'',p:'',name:'',role:''}); setIsEdit(false); setTab('manage'); fetchData();
+                 // ✨ เปลี่ยนจาก alert เป็น Swal
+                 Swal.fire({ title: 'บันทึกสำเร็จ!', icon: 'success', timer: 1500, showConfirmButton: false });
+                 setF({id:'',title:'',desc:'',exp:'',u:'',p:'',name:'',role:''}); setIsEdit(false); setTab('manage'); fetchData();
                }} 
-               style={{ width: '100%', height: STYLE.ขนาด.ความสูง_ปุ่มหลัก, background: STYLE.สี.เน้น_น้ำเงิน, color: '#fff', border: 'none', borderRadius: '99px', fontWeight: 900 }}
+               style={{ width: '100%', height: STYLE.ขนาด.ความสูง_ปุ่มหลัก, background: STYLE.สี.เน้น_น้ำเงิน, color: '#fff', borderRadius: '99px', fontWeight: 900 }}
             >
                ยืนยันบันทึก 🚀
             </button>
@@ -316,7 +318,40 @@ export default function AdminPage() {
               <option value="assistant">Assistant (ผู้ช่วย)</option>
               <option value="admin">Admin (แอดมิน)</option>
             </select>
-            <button onClick={async () => { await supabase.from('users').insert([{username:f.u, password:f.p, name:f.name, role:f.role, role_type: 'admin'}]); alert('เพิ่มสำเร็จ!'); fetchData(); setTab('review'); }} style={{ width: '100%', height: STYLE.ขนาด.ความสูง_ปุ่มหลัก, background: STYLE.สี.เน้น_แดง, color: '#fff', border: 'none', borderRadius: '99px', fontWeight: 900 }}>เพิ่มทีมงาน 👥</button>
+            <button 
+  onClick={async () => { 
+    await supabase.from('users').insert([{
+      username: f.u, 
+      password: f.p, 
+      name: f.name, 
+      role: f.role, 
+      role_type: 'admin'
+    }]); 
+
+    // ✅ เปลี่ยนจาก alert เป็น Swal
+    Swal.fire({
+      title: 'เพิ่มทีมงานสำเร็จ! ✨',
+      icon: 'success',
+      timer: 1500,
+      showConfirmButton: false
+    });
+
+    fetchData(); 
+    setTab('review'); 
+  }} 
+  style={{ 
+    width: '100%', 
+    height: STYLE.ขนาด.ความสูง_ปุ่มหลัก, 
+    background: STYLE.สี.เน้น_แดง, 
+    color: '#fff', 
+    border: 'none', 
+    borderRadius: '99px', 
+    fontWeight: 900,
+    cursor: 'pointer'
+  }}
+>
+  เพิ่มทีมงาน 👥
+</button>
           </div>
         )}
 
