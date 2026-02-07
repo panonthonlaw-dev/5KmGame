@@ -2,7 +2,11 @@
 @tailwind components;
 @tailwind utilities;
 
-body {
-  background-color: #0d0d15;
-  color: white;
+/* บังคับสีพื้นฐานทั้งระบบ */
+html, body {
+  background-color: #f0f4f8 !important; /* สีเทาฟ้าอ่อนๆ กันจอมืด */
+  color: #1e3a8a !important;
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden;
 }
