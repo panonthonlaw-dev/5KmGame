@@ -320,15 +320,26 @@ export default function AdminPage() {
             </select>
             <button 
   onClick={async () => { 
-    await supabase.from('users').insert([{
+    // 1. ส่งข้อมูลเฉพาะที่มีในตาราง (ตัด role_type ออก)
+    const { error } = await supabase.from('users').insert([{
       username: f.u, 
       password: f.p, 
       name: f.name, 
-      role: f.role, 
-      role_type: 'admin'
+      role: f.role  // ใช้ 'admin' หรือ 'assistant' ตามที่เลือก
     }]); 
 
-    // ✅ เปลี่ยนจาก alert เป็น Swal
+    // 2. เช็คว่ามี Error ไหม
+    if (error) {
+      console.error("Supabase Insert Error:", error);
+      return Swal.fire({
+        title: 'บันทึกไม่สำเร็จ!',
+        text: `Error: ${error.message}`, // แจ้งสาเหตุจริง เช่น Username ซ้ำ หรือ Error อื่นๆ
+        icon: 'error',
+        confirmButtonColor: STYLE.สี.เน้น_แดง
+      });
+    }
+
+    // 3. ถ้าสำเร็จค่อยโชว์ Popup สำเร็จ
     Swal.fire({
       title: 'เพิ่มทีมงานสำเร็จ! ✨',
       icon: 'success',
