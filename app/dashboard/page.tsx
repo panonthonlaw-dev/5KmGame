@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
-
+import Swal from 'sweetalert2';
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -38,8 +38,14 @@ export default function DashboardPage() {
   };
 
   const handleUpload = async (missionId: string) => {
-    if (!selectedFile) return alert("❌ โปรดเลือกรูปภาพก่อนครับ");
-    setIsUploading(true); setProgress(10);
+    if (!selectedFile) {
+        return Swal.fire({ 
+            title: 'ลืมรูปภาพ!', 
+            text: 'โปรดเลือกรูปก่อนครับ', 
+            icon: 'warning',
+            confirmButtonColor: '#0066FF' // ใส่สีปุ่มให้เข้ากับธีม Master
+        });
+    }
 
     try {
       const reader = new FileReader();
@@ -73,11 +79,22 @@ export default function DashboardPage() {
 
         setProgress(100);
         setTimeout(() => {
-          setIsUploading(false);
-          alert("🎉 ส่งภารกิจสำเร็จ!");
-          setOpenMission(null); setSelectedFile(null); fetchData(u.id);
-        }, 500);
-      };
+        setIsUploading(false);
+        // ✅ เอา alert("🎉 ส่งภารกิจสำเร็จ!"); ออกไปเลยครับ
+        // ✅ เหลือแค่ Swal ตัวเดียวพอ
+        Swal.fire({ 
+            title: 'สำเร็จ!', 
+            text: 'ส่งภารกิจเรียบร้อย', 
+            icon: 'success', 
+            timer: 1500, 
+            showConfirmButton: false 
+        });
+
+        setOpenMission(null); 
+        setSelectedFile(null); 
+        fetchData(u.id); // อย่าลืมดึงข้อมูลใหม่เพื่อให้สถานะเปลี่ยนเป็น pending
+    }, 500);
+};
     } catch (err: any) {
       alert("❌ เกิดข้อผิดพลาด: " + err.message);
       setIsUploading(false);

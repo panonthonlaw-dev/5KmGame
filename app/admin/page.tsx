@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
-
+import Swal from 'sweetalert2';
 
 /**
  * ============================================================
@@ -106,15 +106,43 @@ export default function AdminPage() {
   const handleApprove = async (sub: any) => {
     await supabase.from('submissions').update({ status: 'approved' }).eq('id', sub.id);
     await supabase.from('users').update({ exp: (sub.users.exp || 0) + sub.missions.exp_reward }).eq('id', sub.users.id);
-    alert("✅ อนุมัติและมอบคะแนนสำเร็จ!"); fetchData();
-  };
+    
+    // ✅ เปลี่ยนเป็น Swal (ลบ alert เดิมออกด้วยนะครับ)
+    Swal.fire({
+      title: 'อนุมัติเรียบร้อย!',
+      text: `มอบ ${sub.missions.exp_reward} EXP ให้คุณ ${sub.users.name}`,
+      icon: 'success',
+      timer: 1500,
+      showConfirmButton: false
+    });
+
+    fetchData();
+};
 
   const handleUpdateExp = async (userId: string) => {
     const newVal = editingExp[userId];
-    if (!newVal || isNaN(parseInt(newVal))) return alert("ใส่ตัวเลขเท่านั้น");
+    
+    // ❌ กรณีใส่ข้อมูลผิด
+    if (!newVal || isNaN(parseInt(newVal))) {
+      return Swal.fire({ 
+        title: 'ใส่ตัวเลขเท่านั้น', 
+        icon: 'error',
+        confirmButtonColor: '#FF001F' 
+      });
+    }
+
     await supabase.from('users').update({ exp: parseInt(newVal) }).eq('id', userId);
-    alert("✨ อัปเดต EXP สำเร็จ!"); fetchData();
-  };
+    
+    // ✅ กรณีอัปเดตสำเร็จ
+    Swal.fire({
+      title: 'อัปเดต EXP สำเร็จ!',
+      icon: 'success',
+      timer: 1500,
+      showConfirmButton: false
+    });
+
+    fetchData();
+};
 
   const commonInput = { width: '100%', height: STYLE.ขนาด.ความสูง_ช่องInput, background: STYLE.สี.พื้นหลัง_จาง, border: `1px solid ${STYLE.สี.เส้นขอบ}`, borderRadius: STYLE.ขนาด.โค้ง_ปุ่ม, padding: '0 15px', outline: 'none' };
 
