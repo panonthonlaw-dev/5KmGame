@@ -1,102 +1,97 @@
 "use client";
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
-import { motion, AnimatePresence } from 'framer-motion';
 
-export default function AuthPage() {
-  const [view, setView] = useState<'login' | 'signup' | 'forgot'>('login');
-  const [loading, setLoading] = useState(false);
+export default function Dashboard() {
   const router = useRouter();
-  
-  const [formData, setFormData] = useState({
-    username: '', firstName: '', lastName: '', studentId: '',
-    grade: 'ม.1', room: '1', password: '', confirmPassword: ''
-  });
+  const [user, setUser] = useState<any>(null);
+  const [rank, setRank] = useState<number>(0);
+  const [loading, setLoading] = useState(true);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
-  };
-
-  const handleAuth = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    try {
-      if (view === 'login') {
-        const { error } = await supabase.auth.signInWithPassword({
-          email: `${formData.username.toLowerCase()}@5km.com`,
-          password: formData.password
-        });
-        if (error) throw error;
-        router.push('/dashboard');
+  useEffect(() => {
+    const initDashboard = async () => {
+      // 1. ตรวจสอบ Session
+      const savedUser = localStorage.getItem('user');
+      if (!savedUser) {
+        router.push('/');
+        return;
       }
-    } catch (err: any) { alert(err.message); } finally { setLoading(false); }
-  };
+      const userData = JSON.parse(savedUser);
 
-  // 📏 ล็อกขนาดเท่ากันเป๊ะ: กว้าง 280px สูง 56px
-  const UI_BASE = "w-[280px] h-[56px] rounded-2xl flex items-center justify-center transition-all duration-200 border-2";
-  
-  return (
-    // 🎨 พื้นหลังจอสีเทาอ่อนมาก เพื่อให้กล่องสีขาวดูมีมิติ
-    <main className="min-h-screen bg-[#f0f2f5] flex items-center justify-center p-6 font-sans">
-      
-      {/* 📦 กล่องระบบหลัก */}
-      <motion.div 
-        initial={{ opacity: 0, y: 15 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="w-full max-w-[360px] min-h-[660px] bg-white border-2 border-black rounded-[3rem] py-12 flex flex-col items-center shadow-[0_20px_50px_rgba(0,0,0,0.05)]"
-      >
+      // 2. ดึงข้อมูลล่าสุดจาก Supabase (เพื่อให้ Rank/EXP อัปเดตเสมอ)
+      const { data: latestUser, error } = await supabase
+        .from('users')
+        .select('*')
+        .eq('id', userData.id)
+        .single();
+
+      if (latestUser) {
+        setUser(latestUser);
+        // 3. คำนวณอันดับ (Ranking Logic)
+        const { count } = await supabase
+          .from('users')
+          .select('*', { count: 'exact', head: true })
+          .gt('exp', latestUser.exp);
         
-        {/* Header: ตัวหนังสือดำสนิท */}
-        <header className="text-center mb-10">
-          <h1 className="text-4xl font-black tracking-tighter text-black uppercase">5 KM RIDER</h1>
-          <p className="text-[#1877f2] text-[11px] font-black mt-2 tracking-[0.25em] uppercase">เล่น • เปลี่ยน • รอด</p>
-          <div className="h-1 w-10 bg-black mx-auto mt-4 rounded-full"></div>
-        </header>
+        setRank((count || 0) + 1);
+      }
+      setLoading(false);
+    };
 
-        <form onSubmit={handleAuth} className="w-full flex-1 flex flex-col items-center justify-center space-y-10">
-          <AnimatePresence mode="wait">
-            {view === 'login' && (
-              <motion.div key="login" className="flex flex-col items-center space-y-6">
-                
-                {/* Username: พื้นหลังช่องกรอกสีเทาอ่อนตัดกับตัวหนังสือดำ */}
-                <div className="flex flex-col items-center">
-                  <label className="w-[280px] text-[12px] font-black text-black uppercase mb-2 ml-1 text-left">User ID</label>
-                  <input 
-                    name="username" type="text" onChange={handleChange} placeholder="Username"
-                    className={`${UI_BASE} bg-[#f8f9fa] border-gray-200 text-black font-bold focus:border-black focus:bg-white outline-none px-4 text-center`}
-                  />
-                </div>
+    initDashboard();
+  }, [router]);
 
-                {/* Password */}
-                <div className="flex flex-col items-center">
-                  <label className="w-[280px] text-[12px] font-black text-black uppercase mb-2 ml-1 text-left">Password</label>
-                  <input 
-                    name="password" type="password" onChange={handleChange} placeholder="••••••••"
-                    className={`${UI_BASE} bg-[#f8f9fa] border-gray-200 text-black font-bold focus:border-black focus:bg-white outline-none px-4 text-center`}
-                  />
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
+  if (loading) return (
+    <div className="min-h-screen bg-[#FDFCF8] flex items-center justify-center">
+      <p className="font-black text-black animate-pulse">กำลังโหลดข้อมูลระบบ...</p>
+    </div>
+  );
 
-          {/* Buttons: ล็อกขนาดเท่ากับ Input */}
-          <div className="flex flex-col items-center space-y-4 pt-4">
-            <button disabled={loading} className={`${UI_BASE} bg-[#1877f2] border-[#1877f2] text-white font-black text-lg active:scale-95 shadow-lg shadow-blue-100`}>
-              {loading ? 'WAIT...' : 'LOG IN'}
-            </button>
-            <button type="button" onClick={() => setView(view === 'login' ? 'signup' : 'login')} className={`${UI_BASE} bg-[#42b72a] border-[#42b72a] text-white font-black text-xs tracking-widest active:scale-95`}>
-              CREATE ACCOUNT
-            </button>
-          </div>
-        </form>
+  return (
+    <main className="min-h-screen p-8 text-black font-sans" style={{ backgroundColor: '#FDFCF8' }}>
+      
+      {/* ส่วนหัว: ข้อมูลนักเรียน */}
+      <header className="mb-12 text-center">
+        <div className="w-20 h-20 bg-[#AED9E0] rounded-full mx-auto mb-4 flex items-center justify-center text-[30px]">
+          {user.username?.charAt(0).toUpperCase()}
+        </div>
+        <h1 className="text-[32px] font-black leading-tight text-black">{user.username}</h1>
+        <p className="font-bold text-gray-500 uppercase tracking-widest text-[12px]">Student Profile</p>
+      </header>
 
-        <footer className="mt-10">
-          <span className="text-[13px] font-black text-black border-b-2 border-black cursor-pointer hover:text-[#1877f2] hover:border-[#1877f2] transition-colors">
-            Forgotten password?
-          </span>
-        </footer>
-      </motion.div>
+      {/* บัตรข้อมูลสถานะ (Status Grid) */}
+      <div className="grid grid-cols-1 gap-4 max-w-[340px] mx-auto mb-10">
+        <div className="flex justify-between items-center py-4 border-b-2 border-[#F2F2F2]">
+          <span className="font-black text-[13px] text-gray-400">ระดับ (LEVEL)</span>
+          <span className="text-[26px] font-black">{user.level || 1}</span>
+        </div>
+        <div className="flex justify-between items-center py-4 border-b-2 border-[#F2F2F2]">
+          <span className="font-black text-[13px] text-gray-400">ค่าประสบการณ์ (EXP)</span>
+          <span className="text-[22px] font-black">{user.exp || 0} <span className="text-[12px]">PTS</span></span>
+        </div>
+        <div className="flex justify-between items-center py-4 border-b-2 border-[#F2F2F2]">
+          <span className="font-black text-[13px] text-gray-400">อันดับในโรงเรียน</span>
+          <span className="text-[22px] font-black" style={{ color: '#AED9E0' }}>#{rank}</span>
+        </div>
+      </div>
+
+      {/* ปุ่มกดหลัก: ขนาดสมมาตร 320px */}
+      <nav className="flex flex-col items-center gap-4">
+        <button className="w-[320px] h-[60px] bg-[#AED9E0] text-black font-black rounded-[18px] text-[18px] hover:scale-105 transition-all">
+          เริ่มเข้าสู่บทเรียน
+        </button>
+        <button className="w-[320px] h-[60px] bg-[#A8E6CF] text-black font-black rounded-[18px] text-[18px] hover:scale-105 transition-all">
+          ตารางคะแนน (LEADERBOARD)
+        </button>
+        <button 
+          onClick={() => { localStorage.clear(); router.push('/'); }}
+          className="mt-8 text-black font-black text-[14px] hover:underline uppercase tracking-tighter"
+        >
+          ออกจากระบบ (Logout)
+        </button>
+      </nav>
+
     </main>
   );
 }

@@ -1,48 +1,62 @@
 "use client";
-import React, { useEffect, useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 
-export default function AdminPage() {
-  const [students, setStudents] = useState<any[]>([]);
+export default function AdminPanel() {
+  const [users, setUsers] = useState<any[]>([]);
+  const [search, setSearch] = useState('');
 
   useEffect(() => {
-    // ดึงรายชื่อนักเรียนทั้งหมดจากตาราง profiles
-    const fetchStudents = async () => {
-      const { data } = await supabase.from('profiles').select('*').order('created_at', { ascending: false });
-      if (data) setStudents(data);
-    };
-    fetchStudents();
+    fetchUsers();
   }, []);
 
+  const fetchUsers = async () => {
+    const { data } = await supabase
+      .from('users')
+      .select('*')
+      .order('exp', { ascending: false });
+    if (data) setUsers(data);
+  };
+
+  const filteredUsers = users.filter(u => u.username.toLowerCase().includes(search.toLowerCase()));
+
   return (
-    <div className="p-8 font-mono">
-      <h1 className="text-3xl font-black text-[#4ade80] mb-6 italic underline">CONTROL CENTER (ADMIN)</h1>
-      <div className="overflow-x-auto border-4 border-[#3a3a50]">
-        <table className="w-full text-left bg-[#1a1a2e]">
-          <thead className="bg-[#3a3a50] text-[#4ade80] uppercase">
-            <tr>
-              <th className="p-4">Username</th>
-              <th className="p-4">Name</th>
-              <th className="p-4">Grade/Room</th>
-              <th className="p-4">Role</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-[#3a3a50]">
-            {students.map((std) => (
-              <tr key={std.id} className="hover:bg-[#252545]">
-                <td className="p-4">{std.username}</td>
-                <td className="p-4">{std.first_name} {std.last_name}</td>
-                <td className="p-4">{std.grade}/{std.room}</td>
-                <td className="p-4">
-                  <span className={`px-2 py-1 ${std.role === 'admin' ? 'bg-red-500' : 'bg-blue-500'} text-black font-bold text-xs uppercase`}>
-                    {std.role}
-                  </span>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+    <main className="min-h-screen p-8 text-black font-sans" style={{ backgroundColor: '#FDFCF8' }}>
+      <div className="max-w-[500px] mx-auto">
+        <header className="mb-10">
+          <h1 className="text-[40px] font-black leading-none" style={{ color: '#AED9E0' }}>ADMIN</h1>
+          <p className="font-black text-[16px] text-black">ศูนย์ควบคุมระบบ Traffic Game</p>
+        </header>
+
+        {/* ช่องค้นหา */}
+        <input 
+          type="text" 
+          placeholder="ค้นหาชื่อนักเรียน..." 
+          className="w-full h-[50px] bg-[#F2F2F2] rounded-[15px] px-5 font-bold mb-8 outline-none focus:bg-white transition-all border-none"
+          onChange={(e) => setSearch(e.target.value)}
+        />
+
+        {/* รายชื่อนักเรียน */}
+        <div className="space-y-4">
+          {filteredUsers.map((u, index) => (
+            <div key={u.id} className="bg-white p-6 rounded-[25px] flex justify-between items-center transition-all hover:scale-[1.02]">
+              <div>
+                <span className="text-[10px] font-black text-gray-300 uppercase">Rank #{index + 1}</span>
+                <p className="font-black text-[20px] leading-tight text-black">{u.username}</p>
+                <div className="flex gap-3 mt-1">
+                  <span className="bg-[#FDFCF8] text-[10px] font-black px-2 py-1 rounded-md text-gray-500">LVL: {u.level}</span>
+                  <span className="bg-[#FDFCF8] text-[10px] font-black px-2 py-1 rounded-md text-gray-500">EXP: {u.exp}</span>
+                </div>
+              </div>
+              <div className="flex flex-col gap-2">
+                <button className="bg-[#AED9E0] w-[80px] py-2 rounded-[10px] font-black text-[12px] text-black">
+                  แก้ไข
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
-    </div>
+    </main>
   );
 }
