@@ -40,15 +40,16 @@ export default function TrafficGameLogin() {
     }
   };
 
-  // 📏 มาตรฐานความสมมาตร: 320px
-  const INPUT_STYLE = "w-[320px] h-[50px] bg-[#F2F2F2] rounded-[12px] px-4 text-black font-bold outline-none border-none placeholder:text-gray-400";
+  // 📏 มาตรฐานความสมมาตร: 320px | ทุกจุดตัวหนังสือสีดำสนิท
+  const INPUT_STYLE = "w-[320px] h-[50px] bg-[#F2F2F2] rounded-[12px] px-4 text-black font-bold outline-none border-none placeholder:text-gray-500";
+  // เปลี่ยนเป็น text-black ทั้งหมด
   const BTN_BLUE = "w-[320px] h-[50px] bg-[#AED9E0] text-black font-black rounded-[12px] active:scale-95 transition-all mt-2";
   const BTN_GREEN = "w-[320px] h-[50px] bg-[#A8E6CF] text-black font-black rounded-[12px] active:scale-95 transition-all mt-4";
 
   return (
     <main className="min-h-screen flex flex-col items-center justify-center p-6" style={{ backgroundColor: '#FDFCF8' }}>
       
-      {/* 🔵 ชื่อเกมสีน้ำเงินพาสเทล */}
+      {/* 🔵 ชื่อเกมสีน้ำเงินพาสเทล แต่เน้นขอบให้ชัดเจน */}
       <header className="mb-10 text-center">
         <h1 className="text-[54px] font-black tracking-tighter leading-none" style={{ color: '#AED9E0' }}>
           traffic game
@@ -56,14 +57,14 @@ export default function TrafficGameLogin() {
         <p className="text-[16px] font-bold text-black mt-2">เล่น • เปลี่ยน • รอด</p>
       </header>
 
-      {/* 📦 Container แบบไร้กรอบนอก */}
+      {/* 📦 Container แบบไร้กรอบนอก ไร้เงาแข็ง */}
       <div className="w-full max-w-[360px] flex flex-col items-center">
         
         <form onSubmit={handleLogin} className="flex flex-col items-center gap-4">
           <div className="flex flex-col items-start w-[320px]">
             <label className="text-[12px] font-black text-black mb-1 ml-1 uppercase">Username</label>
             <input 
-              name="username" type="text" placeholder="Username" 
+              name="username" type="text" placeholder="กรอกชื่อผู้ใช้" 
               onChange={handleChange} className={INPUT_STYLE} 
             />
           </div>
@@ -71,37 +72,37 @@ export default function TrafficGameLogin() {
           <div className="flex flex-col items-start w-[320px]">
             <label className="text-[12px] font-black text-black mb-1 ml-1 uppercase">Password</label>
             <input 
-              name="password" type="password" placeholder="Password" 
+              name="password" type="password" placeholder="กรอกรหัสผ่าน" 
               onChange={handleChange} className={INPUT_STYLE} 
             />
           </div>
 
-          {errorMsg && <p className="text-red-500 text-[13px] font-bold mt-2">{errorMsg}</p>}
+          {errorMsg && <p className="text-red-600 text-[13px] font-bold mt-2">{errorMsg}</p>}
 
           <button type="submit" disabled={loading} className={BTN_BLUE}>
-            {loading ? 'WAITING...' : 'LOG IN'}
+            {loading ? 'กำลังเข้าสู่ระบบ...' : 'เข้าสู่ระบบ'}
           </button>
         </form>
 
-        {/* ปุ่มสร้างบัญชีใหม่ */}
+        {/* ปุ่มสร้างบัญชีใหม่ - ตัวหนังสือดำ */}
         <button 
           onClick={() => router.push('/signup')}
           className={BTN_GREEN}
         >
-          CREATE NEW ACCOUNT
+          สร้างบัญชีใหม่
         </button>
 
-        {/* 🔗 ปุ่มลืมรหัสผ่าน อยู่ล่างสุด เป็นแค่ตัวหนังสือสีดำ */}
+        {/* 🔗 ปุ่มลืมรหัสผ่าน อยู่ล่างสุด เป็นตัวหนังสือสีดำ */}
         <button 
           onClick={() => router.push('/forgot-password')}
-          className="mt-8 text-[14px] font-bold text-black hover:underline bg-transparent border-none p-0 cursor-pointer"
+          className="mt-12 text-[14px] font-bold text-black hover:underline bg-transparent border-none p-0 cursor-pointer"
         >
           คุณลืมรหัสผ่านใช่ไหม?
         </button>
 
       </div>
 
-      <footer className="mt-20 text-[10px] font-black text-gray-300 uppercase tracking-widest">
+      <footer className="mt-20 text-[10px] font-black text-gray-400 uppercase tracking-widest">
         Teacher Thee • 2026
       </footer>
 
