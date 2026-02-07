@@ -10,3 +10,8 @@ html, body {
   padding: 0;
   overflow-x: hidden;
 }
+/* ปรับแต่ง SweetAlert2 ให้มนสวยตามสไตล์ Master */
+.swal2-popup {
+  border-radius: 30px !important;
+  font-family: inherit !important;
+}

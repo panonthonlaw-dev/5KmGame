@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
+import Swal from 'sweetalert2';
 
 export default function AuthPage() {
   const router = useRouter();
@@ -81,17 +82,9 @@ export default function AuthPage() {
   // --- เข้าสู่ระบบ ---
   const handleLogin = async (e: any) => {
     e.preventDefault();
-    
-    // 1. ดึงข้อมูลจาก Supabase โดยเช็ค Username และ Password
-    const { data: user, error } = await supabase
-      .from('users')
-      .select('*')
-      .eq('username', f.u)
-      .eq('password', f.p)
-      .single();
+    const { data: user } = await supabase.from('users').select('*').eq('username', f.u).eq('password', f.p).single();
 
     if (user) {
-      // 2. ระบบจดจำรหัส (Remember Me)
       if (จดจำเราไหม) {
         localStorage.setItem('remU', f.u);
         localStorage.setItem('remP', f.p);
@@ -100,21 +93,38 @@ export default function AuthPage() {
         localStorage.removeItem('remP');
       }
 
-      // 3. เก็บข้อมูลผู้ใช้และเวลาที่ขยับล่าสุดลงเครื่อง (เพื่อระบบ Auto Logout 10 นาที)
       localStorage.setItem('user', JSON.stringify(user));
       localStorage.setItem('lastAct', Date.now().toString());
 
-      // 4. ✨ [จุดสำคัญ!] แยกเส้นทางตามตำแหน่ง (Role)
+      // ✅ แจ้งเตือนแบบใช้ Swal (ไม่มีตัวแปรแปลกปลอม TypeScript ไม่ด่าแน่นอน)
       if (user.role === 'admin') {
-        alert(`ยินดีต้อนรับครับ Master ${user.name} (โหมดผู้ดูแล)`);
-        router.push('/admin');    // ส่งไปหน้า Admin
+        Swal.fire({
+          title: 'Master Login Success!',
+          text: `ยินดีต้อนรับครับ Master ${user.name}`,
+          icon: 'success',
+          timer: 1500,
+          showConfirmButton: false,
+        }).then(() => {
+          router.push('/admin');
+        });
       } else {
-        alert(`สวัสดีครับคุณ ${user.name} (โหมดผู้เล่น)`);
-        router.push('/dashboard'); // ส่งไปหน้าผู้เล่น
+        Swal.fire({
+          title: 'เข้าสู่ระบบสำเร็จ',
+          text: `สวัสดีครับคุณ ${user.name}`,
+          icon: 'success',
+          timer: 1500,
+          showConfirmButton: false,
+        }).then(() => {
+          router.push('/dashboard');
+        });
       }
-
     } else {
-      alert("❌ ไม่พบผู้ใช้งานหรือรหัสผ่านผิดครับ Master!");
+      Swal.fire({
+        title: 'ผิดพลาด!',
+        text: 'Username หรือ Password ไม่ถูกต้องครับ',
+        icon: 'error',
+        confirmButtonColor: '#FF001F',
+      });
     }
   };
 

@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
 
+
 /**
  * ============================================================
  * 🎨 EXTREME STYLE CONFIG (ปรับแต่งสไตล์อย่างละเอียดที่สุด)
