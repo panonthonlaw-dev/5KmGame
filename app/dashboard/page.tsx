@@ -46,6 +46,23 @@ const getPlayerStats = (totalExp: number) => {
   return { currentLevel, progressPercent, rankName, rankColor, expInCurrentLevel, nextLevelExp };
 };
 
+/**
+ * ✨ ส่วนแสดงผลตัวละครแบบ Layer (ซ้อนภาพ)
+ * รองรับชื่อไฟล์แบบ 'head_ (1).png'
+ */
+const AvatarRenderer = ({ config, size = "100%", border = "0", borderColor = "transparent" }: any) => {
+    const s = config || { head: 'head_ (1)', face: 'face_ (1)', acc: 'none' };
+    return (
+        <div style={{ width: size, height: size, borderRadius: '50%', border: `${border} solid ${borderColor}`, overflow: 'hidden', backgroundColor: '#fff', position: 'relative' }}>
+            <img src={`/avatar/heads/${s.head}.png`} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'contain' }} />
+            <img src={`/avatar/faces/${s.face}.png`} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'contain' }} />
+            {s.acc && s.acc !== 'none' && (
+                <img src={`/avatar/accessories/${s.acc}.png`} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'contain' }} />
+            )}
+        </div>
+    );
+};
+
 export default function DashboardPage() {
   const router = useRouter();
   const [u, setU] = useState<any>(null);
@@ -58,17 +75,21 @@ export default function DashboardPage() {
   const [isUploading, setIsUploading] = useState(false);
   const [progress, setProgress] = useState(0);
 
-  // ✨ [แทรกใหม่] ตัวแปรคุมมินิเกม
+  // ✨ มินิเกมไฟจราจร
   const [lightIndex, setLightIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isTraining, setIsTraining] = useState(false);
+
+  // ✨ ระบบแต่งตัว
+  const [activeAvatarTab, setActiveAvatarTab] = useState<'heads' | 'faces' | 'accessories'>('heads');
+  const ITEM_COUNTS = { heads: 13, faces: 13, accessories: 5 };
 
   const THEME = {
     จัดวาง: { โปรไฟล์_กว้าง: "480px", แถบเมนู_กว้าง: "480px", เนื้อหา_กว้าง: "480px", ความสูงรายการภารกิจ: "520px" },
     สี: { พื้นหลังการ์ด: "#fdfdfd", เน้น_แดง: "#FF001F", เน้น_ส้ม: "#FF3300", เน้น_น้ำเงิน: "#0066FF", เน้น_ฟ้า: "#1E90FF", เน้น_เขียว: "#10b981", เน้น_ม่วงEXP: "#8b5cf6", ข้อความ_ปกติ: "#1e3a8a", ข้อความ_จาง: "#94a3b8" }
   };
 
-  // ✨ [แทรกใหม่] เอฟเฟกต์ไฟจราจรวิ่ง
+  // 🚦 เอฟเฟกต์ไฟจราจรวิ่ง
   useEffect(() => {
     let timer: any;
     if (tab === 'game' && (isPlaying || isTraining)) {
@@ -93,18 +114,19 @@ export default function DashboardPage() {
     const { data: uData } = await supabase.from('users').select('*').eq('id', userId).single();
     if (uData) { setU(uData); localStorage.setItem('user', JSON.stringify(uData)); }
     
-    const { data: rankData } = await supabase.from('users').select('name, exp, avatar_url').order('exp', { ascending: false }).limit(10);
+    const { data: rankData } = await supabase.from('users').select('name, exp, avatar_url, avatar_config').order('exp', { ascending: false }).limit(10);
     setAllUsers(rankData || []);
+  };
+
+  const updateAvatar = async (part: string, id: string) => {
+    const newConfig = { ...u.avatar_config, [part]: id };
+    setU({ ...u, avatar_config: newConfig });
+    await supabase.from('users').update({ avatar_config: newConfig }).eq('id', u.id);
   };
 
   const handleUpload = async (missionId: string) => {
     if (!selectedFile) {
-        return Swal.fire({ 
-            title: 'ลืมรูปภาพ!', 
-            text: 'โปรดเลือกรูปก่อนครับ', 
-            icon: 'warning',
-            confirmButtonColor: '#0066FF'
-        });
+        return Swal.fire({ title: 'ลืมรูปภาพ!', text: 'โปรดเลือกรูปก่อนครับ', icon: 'warning', confirmButtonColor: '#0066FF' });
     }
     setIsUploading(true);
     try {
@@ -113,7 +135,6 @@ export default function DashboardPage() {
       reader.onload = async () => {
         const base64Data = (reader.result as string).split(',')[1];
         setProgress(40);
-
         const res = await fetch('/api/upload-drive', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -123,28 +144,21 @@ export default function DashboardPage() {
             base64Data: base64Data
           }),
         });
-
         const data = await res.json();
         if (!res.ok) throw new Error(data.error);
-
         const googleDriveUrl = `https://drive.google.com/uc?id=${data.fileId}`;
         setProgress(80);
-
         const existingSub = userSubmissions.find(s => s.mission_id === missionId);
         if (existingSub && existingSub.status === 'rejected') {
           await supabase.from('submissions').update({ status: 'pending', image_url: googleDriveUrl, created_at: new Date() }).eq('id', existingSub.id);
         } else {
           await supabase.from('submissions').insert([{ user_id: u.id, mission_id: missionId, status: 'pending', image_url: googleDriveUrl }]);
         }
-
         setProgress(100);
         setTimeout(() => {
           setIsUploading(false);
           Swal.fire({ title: 'สำเร็จ!', text: 'ส่งภารกิจเรียบร้อย', icon: 'success', timer: 1500, showConfirmButton: false });
-          setOpenMission(null); 
-          setSelectedFile(null); 
-          fetchData(u.id);
-          setProgress(0);
+          setOpenMission(null); setSelectedFile(null); fetchData(u.id); setProgress(0);
         }, 500);
       };
     } catch (err: any) {
@@ -178,7 +192,7 @@ export default function DashboardPage() {
             </div>
           </div>
           <div style={{ width: '85px', height: '85px', borderRadius: '50%', border: `4px solid ${stats.rankColor}`, overflow: 'hidden', backgroundColor: '#fff' }}>
-            <img src={u.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${u.name}`} className="w-full h-full object-cover" />
+            <AvatarRenderer config={u.avatar_config} />
           </div>
         </div>
       </div>
@@ -187,8 +201,8 @@ export default function DashboardPage() {
       <div style={{ width: '100%', maxWidth: THEME.จัดวาง.แถบเมนู_กว้าง, margin: '0 auto 20px auto', position: 'relative', zIndex: 10 }}>
         <div style={{ backgroundColor: '#fff', borderRadius: '20px', padding: '6px', display: 'flex', height: '60px', boxShadow: '0 5px 15px rgba(0,0,0,0.05)' }}>
           {['mission', 'shop', 'game', 'rank'].map((t: any) => (
-            <div key={t} onClick={() => { setTab(t); if(t === 'game') setIsPlaying(true); }} style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', backgroundColor: tab === t ? THEME.สี.เน้น_แดง : 'transparent', color: tab === t ? '#fff' : THEME.สี.เน้น_ฟ้า, borderRadius: '15px', fontWeight: 900, fontSize: '12px' }}>
-              {t === 'mission' ? 'ภารกิจ' : t === 'shop' ? 'ร้านค้า' : t === 'game' ? 'เกม' : 'อันดับ'}
+            <div key={t} onClick={() => { setTab(t as any); if(t === 'game') setIsPlaying(true); }} style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', backgroundColor: tab === t ? THEME.สี.เน้น_แดง : 'transparent', color: tab === t ? '#fff' : THEME.สี.เน้น_ฟ้า, borderRadius: '15px', fontWeight: 900, fontSize: '12px' }}>
+              {t === 'mission' ? 'ภารกิจ' : t === 'shop' ? 'แต่งตัว' : t === 'game' ? 'เกม' : 'อันดับ'}
             </div>
           ))}
         </div>
@@ -238,21 +252,37 @@ export default function DashboardPage() {
           </div>
         )}
 
-        {/* [2] Shop Tab (Mockup) */}
+        {/* [2] Shop Tab - Avatar Customization */}
         {tab === 'shop' && (
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
-             {[1, 2, 3, 4].map(i => (
-               <div key={i} style={{ backgroundColor: '#fff', borderRadius: '25px', padding: '20px', textAlign: 'center' }}>
-                 <div style={{ width: '50px', height: '50px', background: '#eee', margin: '0 auto 10px', borderRadius: '10px' }}></div>
-                 <p style={{ fontSize: '13px', fontWeight: 900 }}>Item {i}</p>
-                 <p style={{ fontSize: '11px', color: '#EAB308' }}>💰 100 Gold</p>
-                 <button onClick={() => Swal.fire('Coming Soon', 'ระบบร้านค้ากำลังพัฒนา', 'info')} style={{ marginTop: '10px', width: '100%', padding: '8px', background: THEME.สี.เน้น_ฟ้า, color: '#fff', border: 'none', borderRadius: '10px', fontSize: '11px' }}>ซื้อ</button>
-               </div>
-             ))}
+          <div style={{ backgroundColor: '#fff', borderRadius: '30px', padding: '20px', boxShadow: '0 10px 30px rgba(0,0,0,0.05)' }}>
+            <div style={{ display: 'flex', gap: '5px', marginBottom: '15px' }}>
+              {(['heads', 'faces', 'accessories'] as const).map((t) => (
+                <button key={t} onClick={() => setActiveAvatarTab(t)} style={{ flex: 1, padding: '8px', borderRadius: '10px', border: 'none', backgroundColor: activeAvatarTab === t ? THEME.สี.เน้น_น้ำเงิน : '#f1f5f9', color: activeAvatarTab === t ? '#fff' : '#64748b', fontSize: '12px', fontWeight: 900 }}>
+                   {t === 'heads' ? 'ทรงผม' : t === 'faces' ? 'หน้า' : 'แว่น'}
+                </button>
+              ))}
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '10px', maxHeight: '350px', overflowY: 'auto' }}>
+               {activeAvatarTab === 'accessories' && (
+                 <div onClick={() => updateAvatar('acc', 'none')} style={{ aspectRatio: '1/1', border: '1px solid #eee', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', cursor: 'pointer', fontWeight: 900 }}>X</div>
+               )}
+               {Array.from({ length: (ITEM_COUNTS as any)[activeAvatarTab] }).map((_, i) => {
+                 const num = i + 1;
+                 const id = activeAvatarTab === 'heads' ? `head_ (${num})` : activeAvatarTab === 'faces' ? `face_ (${num})` : `glass_ (${num})`;
+                 const partKey = activeAvatarTab === 'heads' ? 'head' : activeAvatarTab === 'faces' ? 'face' : 'acc';
+                 const isSelected = u.avatar_config?.[partKey] === id;
+                 return (
+                   <div key={id} onClick={() => updateAvatar(partKey, id)} style={{ aspectRatio: '1/1', padding: '5px', border: isSelected ? `2px solid ${THEME.สี.เน้น_น้ำเงิน}` : '1px solid #eee', borderRadius: '12px', cursor: 'pointer', backgroundColor: isSelected ? '#f0f7ff' : '#fff' }}>
+                      <img src={`/avatar/${activeAvatarTab}/${id}.png`} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                   </div>
+                 );
+               })}
+            </div>
+            <p style={{ textAlign: 'center', fontSize: '11px', color: THEME.สี.ข้อความ_จาง, marginTop: '20px', fontWeight: 900 }}>แตะไอเทมเพื่อเปลี่ยนรูปลักษณ์ ✨</p>
           </div>
         )}
 
-        {/* [3] Game Tab (Traffic Stop) */}
+        {/* [3] Game Tab - Traffic Stop */}
         {tab === 'game' && (
           <div style={{ backgroundColor: '#fff', borderRadius: '35px', padding: '40px 20px', textAlign: 'center', boxShadow: '0 10px 30px rgba(0,0,0,0.05)' }}>
             <h3 style={{ fontWeight: 900, color: THEME.สี.ข้อความ_ปกติ }}>Traffic Stop</h3>
@@ -270,25 +300,17 @@ export default function DashboardPage() {
                     const hoursLeft = (lastDate + (24 * 60 * 60 * 1000) - new Date().getTime()) / (1000 * 60 * 60);
                     if (hoursLeft > 0) return Swal.fire({ title: 'ติดไฟแดง!', text: `รออีก ${Math.ceil(hoursLeft)} ชม.`, icon: 'info' });
                   }
-                  setIsPlaying(false);
-                  setIsTraining(false);
+                  setIsPlaying(false); setIsTraining(false);
                   let prize = lightIndex === 2 ? 100 : lightIndex === 1 ? 30 : 10;
                   const { error } = await supabase.from('users').update({ coins: (u.coins || 0) + prize, last_spin: new Date().toISOString() }).eq('id', u.id);
-                  if(!error) { 
-                    Swal.fire({ title: 'STOP!', text: `คุณได้รับ ${prize} Gold`, icon: 'success' }); 
-                    fetchData(u.id); 
-                  }
+                  if(!error) { Swal.fire({ title: 'STOP!', text: `คุณได้รับ ${prize} Gold`, icon: 'success' }); fetchData(u.id); }
                 }}
                 style={{ width: '200px', height: '55px', background: isPlaying ? '#333' : '#ccc', color: '#fff', borderRadius: '15px', fontWeight: 900, border: 'none' }}
               >
                 {isPlaying ? 'STOP! ✋' : 'COOLDOWN'}
               </button>
-              {!isPlaying && !isTraining && (
-                <button onClick={() => setIsTraining(true)} style={{ background: 'none', border: '1px solid #0066FF', color: '#0066FF', padding: '5px 15px', borderRadius: '10px', fontSize: '11px' }}>ซ้อมเล่น</button>
-              )}
-              {isTraining && (
-                <button onClick={() => { setIsTraining(false); Swal.fire('โหมดซ้อม', 'ไม่ได้รางวัลนะครับ', 'info'); }} style={{ width: '200px', height: '55px', background: '#0066FF', color: '#fff', borderRadius: '15px', fontWeight: 900, border: 'none' }}>STOP! (ซ้อม)</button>
-              )}
+              {!isPlaying && !isTraining && <button onClick={() => setIsTraining(true)} style={{ background: 'none', border: '1px solid #0066FF', color: '#0066FF', padding: '5px 15px', borderRadius: '10px', fontSize: '11px' }}>ซ้อมเล่น</button>}
+              {isTraining && <button onClick={() => { setIsTraining(false); Swal.fire('โหมดซ้อม', 'ไม่ได้รางวัลนะครับ', 'info'); }} style={{ width: '200px', height: '55px', background: '#0066FF', color: '#fff', borderRadius: '15px', fontWeight: 900, border: 'none' }}>STOP! (ซ้อม)</button>}
             </div>
           </div>
         )}
@@ -303,8 +325,8 @@ export default function DashboardPage() {
                   <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 0', borderBottom: '1px solid #f1f5f9' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                       <span style={{ fontWeight: 900, color: THEME.สี.เน้น_ส้ม, width: '25px' }}>{i + 1}</span>
-                      <div style={{ width: '40px', height: '40px', borderRadius: '50%', overflow: 'hidden', border: `2px solid ${s.rankColor}` }}>
-                        <img src={user.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.name}`} className="w-full h-full object-cover" />
+                      <div style={{ width: '40px', height: '40px', borderRadius: '50%', border: `2px solid ${s.rankColor}`, overflow: 'hidden', backgroundColor: '#fff', position: 'relative' }}>
+                        <AvatarRenderer config={user.avatar_config} />
                       </div>
                       <div>
                         <p style={{ margin: 0, fontWeight: 900, fontSize: '14px' }}>{user.name}</p>
@@ -323,7 +345,7 @@ export default function DashboardPage() {
         <span onClick={() => { localStorage.clear(); router.push('/'); }} style={{ color: THEME.สี.ข้อความ_จาง, fontSize: '12px', fontWeight: 900, textDecoration: 'underline', cursor: 'pointer' }}>LOGOUT SYSTEM</span>
       </div>
 
-      {/* ✨ [แทรกใหม่ 1/2] Loading Overlay สำหรับการอัพโหลด */}
+      {/* Upload Overlay */}
       {isUploading && (
         <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(255,255,255,0.85)', backdropFilter: 'blur(10px)', zIndex: 9999, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
           <div style={{ backgroundColor: '#fff', padding: '40px', borderRadius: '40px', boxShadow: '0 25px 60px rgba(0,0,0,0.1)', textAlign: 'center', width: '320px' }}>
@@ -341,16 +363,19 @@ export default function DashboardPage() {
       <style jsx>{`
         .custom-scroll::-webkit-scrollbar { width: 5px; }
         .custom-scroll::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 10px; }
-        
-        /* ✨ [แทรกใหม่ 2/2] Animation สำหรับไอคอนจรวด */
-        .upload-rocket {
-          animation: rocket-bounce 1.5s infinite;
-        }
-        @keyframes rocket-bounce {
-          0%, 100% { transform: translateY(0) rotate(-45deg); }
-          50% { transform: translateY(-15px) rotate(-45deg); }
-        }
+        .upload-rocket { animation: rocket-bounce 1.5s infinite; }
+        @keyframes rocket-bounce { 0%, 100% { transform: translateY(0) rotate(-45deg); } 50% { transform: translateY(-15px) rotate(-45deg); } }
       `}</style>
     </main>
   );
-}
+}# 1. เช็คสถานะไฟล์ (จะเห็นรายชื่อรูปภาพใหม่เป็นสีแดง)
+git status
+
+# 2. เพิ่มไฟล์ทั้งหมดเข้า Stage
+git add .
+
+# 3. Commit งานพร้อมบันทึกข้อความ
+git commit -m "Update: Complete Avatar Customization System"
+
+# 4. Push ขึ้น GitHub (เปลี่ยน main เป็นชื่อ branch ของคุณถ้าไม่ใช่ main)
+git push origin main
