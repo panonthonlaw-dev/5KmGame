@@ -368,14 +368,4 @@ export default function DashboardPage() {
       `}</style>
     </main>
   );
-}# 1. เช็คสถานะไฟล์ (จะเห็นรายชื่อรูปภาพใหม่เป็นสีแดง)
-git status
-
-# 2. เพิ่มไฟล์ทั้งหมดเข้า Stage
-git add .
-
-# 3. Commit งานพร้อมบันทึกข้อความ
-git commit -m "Update: Complete Avatar Customization System"
-
-# 4. Push ขึ้น GitHub (เปลี่ยน main เป็นชื่อ branch ของคุณถ้าไม่ใช่ main)
-git push origin main
+}
